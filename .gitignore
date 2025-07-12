@@ -1,0 +1,21 @@
+# Node.js dependencies
+src/frontend/node_modules/
+src/frontend/npm-debug.log*
+src/frontend/yarn-debug.log*
+src/frontend/yarn-error.log*
+
+# Python dependencies
+__pycache__/
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+src/frontend/node_modules/
+
+src/backend/data/conversations/
+
