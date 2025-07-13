@@ -1,4 +1,3 @@
-
 import os
 from autogen_agentchat.agents import AssistantAgent
 from autogen_core.models import (
@@ -6,6 +5,12 @@ from autogen_core.models import (
 )
 from autogen_ext.models.ollama import OllamaChatCompletionClient
 from autogen_ext.tools.mcp import SseMcpToolAdapter, StdioServerParams, StdioMcpToolAdapter, SseServerParams
+
+from autogen_agentchat.messages import ToolCallExecutionEvent, TextMessage
+
+
+import logging
+logger = logging.getLogger(__name__)
 
 class MagenticOneCustomMCPAgent(AssistantAgent):
     """An agent used by MagenticOne that provides coding assistance using an LLM model client.
@@ -30,19 +35,38 @@ class MagenticOneCustomMCPAgent(AssistantAgent):
             system_message=system_message,
             tools=adapter
         )
+        self.tool_cache = {}
+        self.tool_call_limit = 1
         self.user_id = user_id
     
-    def on_function_call(self, tool_name, arguments):
-        print(f"[Function Call Triggered] Tool: {tool_name}, Arguments: {arguments}")
-        if hasattr(self, "tools") and self.tools:
-            print(f"[Function Call] Available tools: {[tool.name for tool in self.tools]}")
-        else:
-            print("[Function Call] No tools registered.")
+    async def on_function_call(self, tool_name, arguments):
+        cache_key = f"{tool_name}:{str(arguments)}"
+
+        if cache_key in self.tool_cache:
+            logger.debug(f"[Tool Cache Hit] {cache_key}")
+            return self.tool_cache[cache_key]
+
         try:
-            return super().on_function_call(tool_name, arguments)
+            logger.info(f"[Function Call] Executing: {tool_name} with {arguments}")
+            result = await super().on_function_call(tool_name, arguments)
+
+            # Enforce that a real tool result is returned and contains meaningful content
+            if isinstance(result, ToolCallExecutionEvent) and result.content:
+                # Validate that content is a list of dicts with "text" fields (as expected from MCP)
+                if isinstance(result.content, list) and all(isinstance(entry, dict) and "text" in entry for entry in result.content):
+                    logger.debug(f"[Validated Tool Result] {result.content}")
+                    self.tool_cache[cache_key] = result
+                    return result
+                else:
+                    logger.warning(f"[Invalid Tool Result Structure] {result.content}")
+                    raise RuntimeError(f"Tool {tool_name} returned unexpected format.")
+            else:
+                logger.warning(f"[Tool Result Missing or Invalid for {tool_name}] Fallback/hallucination is not allowed.")
+                raise RuntimeError(f"Tool {tool_name} failed to return valid result.")
         except Exception as e:
-            print(f"[Function Call Error] {e}")
-            return None
+            logger.error(f"[Function Call Error] {e}")
+            raise
+
 
     @classmethod
     async def create(
@@ -55,13 +79,15 @@ class MagenticOneCustomMCPAgent(AssistantAgent):
     ):
         if model_client is None:
             model_client = OllamaChatCompletionClient(config={"model": "mistral"})
+            if not model_client.supports_function_calling():
+                raise RuntimeError("The configured model does not support function calling required for tools.")
 
-        print("Creating MagenticOneCustomMCPAgent...")
-        print("MCP_SERVER_URI: ", os.environ.get("MCP_SERVER_URI"))
-        print("MCP_SERVER_API_KEY: ", os.environ.get("MCP_SERVER_API_KEY"))
+        logger.info("Creating MagenticOneCustomMCPAgent...")
+        logger.debug(f"MCP_SERVER_URI: {os.environ.get('MCP_SERVER_URI')}")
+        logger.debug(f"MCP_SERVER_API_KEY: {os.environ.get('MCP_SERVER_API_KEY')}")
 
         server_mode = os.environ.get("MCP_SERVER_MODE", "sse").lower()
-        print("MCP_SERVER_MODE: ", server_mode)
+        logger.debug(f"MCP_SERVER_MODE: {server_mode}")
 
         if server_mode == "stdio":
             server_params = StdioServerParams(
@@ -77,6 +103,7 @@ class MagenticOneCustomMCPAgent(AssistantAgent):
             )
         else:
             mcp_server_uri = os.environ.get("MCP_SERVER_URI", "http://localhost:8333") + "/sse"
+            logger.info(f"Using SSE MCP Server URI: {mcp_server_uri}")
             server_params = SseServerParams(
                 url=mcp_server_uri,
                 headers={"x-api-key": os.environ.get("MCP_SERVER_API_KEY", "1234")}
@@ -84,16 +111,24 @@ class MagenticOneCustomMCPAgent(AssistantAgent):
 
         try:
             if server_mode == "stdio":
+                logger.info("Initializing adapters using STDIO mode...")
                 adapter_data_provider = await StdioMcpToolAdapter.from_server_params(server_params, "data_provider")
                 adapter_data_list_tables = await StdioMcpToolAdapter.from_server_params(server_params, "show_tables")
                 adapter_mailer = await StdioMcpToolAdapter.from_server_params(server_params, "mailer")
             else:
+                logger.info("Initializing adapters using SSE mode...")
                 adapter_data_provider = await SseMcpToolAdapter.from_server_params(server_params, "data_provider")
                 adapter_data_list_tables = await SseMcpToolAdapter.from_server_params(server_params, "show_tables")
                 adapter_mailer = await SseMcpToolAdapter.from_server_params(server_params, "mailer")
         except Exception as e:
-            print(f"[Adapter Initialization Error] {e}")
+            logger.error(f"[Adapter Initialization Error] {e}")
             raise
+
+        logger.info("Adapters initialized:")
+        logger.debug(f"  Data Provider Adapter: {adapter_data_provider}")
+        logger.debug(f"  Data List Tables Adapter: {adapter_data_list_tables}")
+        logger.debug(f"  Mailer Adapter: {adapter_mailer}")
+        logger.debug(f"Server mode used: {server_mode}")
 
         return cls(name, 
                    model_client, 
