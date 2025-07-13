@@ -1,4 +1,12 @@
 from __future__ import annotations
+
+# OpenTelemetry tracing imports
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.openai import OpenAIInstrumentor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 def setup_logging(logs_dir="./logs", log_file="server.log"):
     os.makedirs(logs_dir, exist_ok=True)
     log_path = os.path.join(logs_dir, log_file)
@@ -17,10 +25,7 @@ def setup_logging(logs_dir="./logs", log_file="server.log"):
 from providers.registry import PROVIDERS
 from fastapi import FastAPI, Depends, UploadFile, HTTPException, Query, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2AuthorizationCodeBearer
-#
-from azure.storage.blob import BlobServiceClient
-# from sqlalchemy.orm import Session
+
 import schemas, crud
 from database import MongoDB
 import os
@@ -44,12 +49,28 @@ import logging, os
 
 
 
+
+
+
+# Set up telemetry span exporter.
+otel_exporter = OTLPSpanExporter(endpoint="http://localhost:4317", insecure=True)
+span_processor = BatchSpanProcessor(otel_exporter)
+
+# Set up telemetry trace provider.
+tracer_provider = TracerProvider(resource=Resource({"service.name": "autogen-agentchat"}))
+tracer_provider.add_span_processor(span_processor)
+trace.set_tracer_provider(tracer_provider)
+
+# Instrument the OpenAI Python library
+OpenAIInstrumentor().instrument()
+
 os.environ["CHROMA_TELEMETRY_ENABLED"] = "false"
 logging.getLogger("startup").info("Starting the server...")
 
 from dotenv import load_dotenv
 load_dotenv()
 setup_logging()
+
 
 from llama_index.core.indices.base import BaseIndex
 rag_index: BaseIndex | None = None
@@ -287,12 +308,7 @@ async def display_log_message(log_entry, logs_dir, session_id, user_id, conversa
 
 
 
-# Azure Services Setup (Mocked for example)
-blob_service_client = BlobServiceClient.from_connection_string(
-    "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;" + \
-    "AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;" + \
-    "BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;"
-)
+
 
 # Chat Endpoint
 @app.post("/chat")
@@ -392,14 +408,12 @@ async def chat_stream(
     # db: Session = Depends(get_db),
     user: dict = Depends(validate_token)
 ):
-    
-   
     logger = logging.getLogger("chat_stream")
     logger.setLevel(logging.WARNING)
     logger.info(f"Chat stream started for session_id: {session_id} and user_id: {user_id}")
     # create folder for logs if not exists
-    logs_dir="./logs"
-    if not os.path.exists(logs_dir):    
+    logs_dir = "./logs"
+    if not os.path.exists(logs_dir):
         os.makedirs(logs_dir)
 
     # get the conversation from the database using user and session id
@@ -413,7 +427,6 @@ async def chat_stream(
 
     _run_locally = conversation["run_mode_locally"]
     _agents = conversation["agents"]
-
 
     # Provider/model selection for chat stream
     provider_name = conversation.get("provider", os.getenv("DEFAULT_PROVIDER", "docker"))
@@ -435,25 +448,26 @@ async def chat_stream(
     await magentic_one.initialize(agents=_agents, session_id=session_id)
     logger.info(f"Initialized MagenticOne with agents: {len(_agents)} and session_id: {session_id} and user_id: {user_id}")
 
-    stream, cancellation_token = magentic_one.main(task = task)
+    stream, cancellation_token = magentic_one.main(task=task)
     logger.info(f"Stream and cancellation token created for task: {task}")
 
-
+    tracer = trace.get_tracer("autogen-agentchat")
+    # Wrap the team execution logic in a tracing span
     async def event_generator(stream, conversation):
-        async for log_entry in stream:
-            if isinstance(log_entry, ToolCallRequestEvent):
-                logger.warning(f"[TOOL CALL REQUEST] Tool: {log_entry.content[0].name}, Args: {log_entry.content[0].arguments}")
-            elif isinstance(log_entry, ToolCallExecutionEvent):
-                logger.info(f"[TOOL CALL RESPONSE] {log_entry.content[0].content}")
-            json_response = await display_log_message(
-                log_entry=log_entry,
-                logs_dir=logs_dir,
-                session_id=magentic_one.session_id,
-                conversation=conversation,
-                user_id=user_id
-            )    
-            yield f"data: {json.dumps(json_response.to_json())}\n\n"
-
+        with tracer.start_as_current_span("run_agentchat"):
+            async for log_entry in stream:
+                if isinstance(log_entry, ToolCallRequestEvent):
+                    logger.warning(f"[TOOL CALL REQUEST] Tool: {log_entry.content[0].name}, Args: {log_entry.content[0].arguments}")
+                elif isinstance(log_entry, ToolCallExecutionEvent):
+                    logger.info(f"[TOOL CALL RESPONSE] {log_entry.content[0].content}")
+                json_response = await display_log_message(
+                    log_entry=log_entry,
+                    logs_dir=logs_dir,
+                    session_id=magentic_one.session_id,
+                    conversation=conversation,
+                    user_id=user_id
+                )
+                yield f"data: {json.dumps(json_response.to_json())}\n\n"
 
     return StreamingResponse(event_generator(stream, conversation), media_type="text/event-stream")
 
