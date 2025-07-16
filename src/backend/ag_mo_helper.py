@@ -1,6 +1,22 @@
+from __future__ import annotations
 import asyncio
 import logging
 import os
+from opentelemetry import trace
+from opentelemetry.trace import Tracer
+from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+
+trace.set_tracer_provider(
+    TracerProvider(
+        resource=Resource.create({SERVICE_NAME: "magentic-one-agent"})
+    )
+)
+tracer = trace.get_tracer(__name__)
+span_processor = BatchSpanProcessor(OTLPSpanExporter())
+trace.get_tracer_provider().add_span_processor(span_processor)
 import time
 from uuid import uuid4
 from inspect import signature
@@ -30,6 +46,12 @@ from providers.registry import PROVIDERS
 from ag_mo_agent import MagenticOneCustomAgent
 from ag_mo_rag_agent import MagenticOneRAGAgent
 from ag_mo_mcp_agent import MagenticOneCustomMCPAgent
+
+from ag_mo_code_executor_agent import MagenticOneCodeExecutorAgent
+from ag_mo_web_surfer_agent import MagenticOneWebSurferAgent
+
+from ag_mo_proxy_agent import MagenticOneProxyAgent
+from ag_mo_orchestrator_agent import MagenticOneOrchestratorAgent
 
 import re
 import uuid
@@ -97,6 +119,7 @@ def _wrap_with_proxy(agent):
                         setattr(proxy, _method, getattr(agent, _method))
                     except Exception:
                         pass
+            proxy._tracer = tracer
             return proxy
         elif {"id", "agent"}.issubset(param_names):
             proxy = AgentProxy(id=agent_id, agent=agent)
@@ -119,6 +142,7 @@ def _wrap_with_proxy(agent):
                         setattr(proxy, _method, getattr(agent, _method))
                     except Exception:
                         pass
+            proxy._tracer = tracer
             return proxy
         elif len(param_names) >= 2:
             # assume first two positional parameters are (agent_id/id, agent)
@@ -142,6 +166,7 @@ def _wrap_with_proxy(agent):
                         setattr(proxy, _method, getattr(agent, _method))
                     except Exception:
                         pass
+            proxy._tracer = tracer
             return proxy
     except TypeError:
         pass
@@ -198,45 +223,63 @@ class MagenticOneHelper:
         agent_list = []
         for agent in agents:
             if agent["type"] == "MagenticOne" and agent["name"] == "Coder":
-                agent_list.append(_wrap_with_proxy(MagenticOneCoderAgent("Coder", model_client=client)))
+                with tracer.start_as_current_span("init_agent_Coder"):
+                    agent_list.append(_wrap_with_proxy(MagenticOneCoderAgent("Coder", model_client=client)))
             elif agent["type"] == "MagenticOne" and agent["name"] == "Executor":
-                if self.run_locally:
-                    executor = CodeExecutorAgent("Executor", code_executor=await DockerCommandLineCodeExecutor(work_dir=logs_dir).start())
-                else:
-                    endpoint = os.getenv("POOL_MANAGEMENT_ENDPOINT")
-                    if not endpoint:
+                with tracer.start_as_current_span("init_agent_Executor"):
+                    if self.run_locally:
                         executor = CodeExecutorAgent("Executor", code_executor=await DockerCommandLineCodeExecutor(work_dir=logs_dir).start())
                     else:
-                        executor = CodeExecutorAgent("Executor", code_executor=ACADynamicSessionsCodeExecutor(pool_management_endpoint=endpoint, credential=DefaultAzureCredential(), work_dir=tempfile.mkdtemp()))
-                agent_list.append(_wrap_with_proxy(executor))
+                        endpoint = os.getenv("POOL_MANAGEMENT_ENDPOINT")
+                        if not endpoint:
+                            executor = CodeExecutorAgent("Executor", code_executor=await DockerCommandLineCodeExecutor(work_dir=logs_dir).start())
+                        else:
+                            executor = CodeExecutorAgent("Executor", code_executor=ACADynamicSessionsCodeExecutor(pool_management_endpoint=endpoint, credential=DefaultAzureCredential(), work_dir=tempfile.mkdtemp()))
+                    agent_list.append(_wrap_with_proxy(executor))
             elif agent["type"] == "MagenticOne" and agent["name"] == "WebSurfer":
-                # Ensure 'function_calling' key is present in model_info for compatibility
-                if getattr(client, "model_info", None) is not None:
-                    if "function_calling" not in client.model_info:
-                        client.model_info["function_calling"] = True
-
-                agent_list.append(_wrap_with_proxy(MultimodalWebSurfer("WebSurfer", model_client=client)))
+                with tracer.start_as_current_span("init_agent_WebSurfer"):
+                    # Ensure 'function_calling' key is present in model_info for compatibility
+                    if getattr(client, "model_info", None) is not None:
+                        if "function_calling" not in client.model_info:
+                            client.model_info["function_calling"] = True
+                    agent_list.append(_wrap_with_proxy(MultimodalWebSurfer("WebSurfer", model_client=client)))
             elif agent["type"] == "MagenticOne" and agent["name"] == "FileSurfer":
-                file_surfer = FileSurfer("FileSurfer", model_client=client)
-                file_surfer._browser.set_path(os.path.join(os.getcwd(), "data"))
-                agent_list.append(file_surfer)
+                with tracer.start_as_current_span("init_agent_FileSurfer"):
+                    file_surfer = FileSurfer("FileSurfer", model_client=client)
+                    file_surfer._browser.set_path(os.path.join(os.getcwd(), "data"))
+                    agent_list.append(file_surfer)
             elif agent["type"] == "Custom":
-                agent_list.append(_wrap_with_proxy(MagenticOneCustomAgent(agent["name"], client, agent["system_message"], agent["description"])))
+                with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
+                    agent_list.append(_wrap_with_proxy(MagenticOneCustomAgent(agent["name"], client, agent["system_message"], agent["description"])))
             elif agent["type"] == "CustomMCP":
-                model_name = self.model or os.getenv("DEFAULT_MODEL", "llama3")
-                custom_client = OllamaChatCompletionClient(model=model_name)
-                custom_agent = await MagenticOneCustomMCPAgent.create(
-                    agent["name"],
-                    custom_client,
-                    agent["system_message"] + "\n\n in case of email use this address as TO: " + self.user_id,
-                    agent["description"],
-                    self.user_id
-                )
-                agent_list.append(_wrap_with_proxy(custom_agent))
-                print(f'{agent["name"]} (custom MCP) added!')
-
+                with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
+                    model_name = self.model or os.getenv("DEFAULT_MODEL", "llama3")
+                    custom_client = OllamaChatCompletionClient(model=model_name)
+                    custom_agent = await MagenticOneCustomMCPAgent.create(
+                        agent["name"],
+                        custom_client,
+                        agent["system_message"] + "\n\n in case of email use this address as TO: " + self.user_id,
+                        agent["description"],
+                        self.user_id
+                    )
+                    agent_list.append(_wrap_with_proxy(custom_agent))
+                    print(f'{agent["name"]} (custom MCP) added!')
             elif agent["type"] == "RAG":
-                agent_list.append(_wrap_with_proxy(MagenticOneRAGAgent(agent["name"], model_client=client, index_name=agent["index_name"], description=agent["description"], AZURE_SEARCH_SERVICE_ENDPOINT=os.getenv("AZURE_SEARCH_SERVICE_ENDPOINT"))))
+                with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
+                    agent_list.append(_wrap_with_proxy(MagenticOneRAGAgent(agent["name"], model_client=client, index_name=agent["index_name"], description=agent["description"], AZURE_SEARCH_SERVICE_ENDPOINT=os.getenv("AZURE_SEARCH_SERVICE_ENDPOINT"))))
+            # --- Custom agent types ---
+            elif agent["type"] == "CustomCodeExecutor":
+                with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
+                    agent_list.append(_wrap_with_proxy(MagenticOneCodeExecutorAgent(agent["name"], model_client=client, system_message=agent["system_message"], description=agent["description"])))
+            elif agent["type"] == "CustomWebSurfer":
+                with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
+                    agent_list.append(_wrap_with_proxy(MagenticOneWebSurferAgent(agent["name"], model_client=client, system_message=agent["system_message"], description=agent["description"])))
+            elif agent["type"] == "CustomProxy":
+                with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
+                    agent_list.append(_wrap_with_proxy(MagenticOneProxyAgent(agent["name"], model_client=client, system_message=agent["system_message"], description=agent["description"])))
+            elif agent["type"] == "CustomOrchestrator":
+                with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
+                    agent_list.append(_wrap_with_proxy(MagenticOneOrchestratorAgent(agent["name"], model_client=client, system_message=agent["system_message"], description=agent["description"])))
             else:
                 raise ValueError("Unknown Agent!")
         return agent_list
@@ -245,7 +288,8 @@ class MagenticOneHelper:
         team = MagenticOneGroupChat(participants=self.agents, model_client=self.client, max_turns=self.max_rounds, max_stalls=self.max_stalls_before_replan, emit_team_events=False)
         self.team = team
         cancellation_token = CancellationToken()
-        stream = team.run_stream(task=task, cancellation_token=cancellation_token)
+        with tracer.start_as_current_span("team_execution"):
+            stream = team.run_stream(task=task, cancellation_token=cancellation_token)
         return stream, cancellation_token
 
 async def main(agents, task, run_locally, provider_name, model) -> None:
@@ -253,7 +297,8 @@ async def main(agents, task, run_locally, provider_name, model) -> None:
     await helper.initialize(agents, provider_name=provider_name, model=model)
     team = MagenticOneGroupChat(participants=helper.agents, model_client=helper.client, max_turns=helper.max_rounds, max_stalls=helper.max_stalls_before_replan)
     try:
-        await Console(team.run_stream(task=task))
+        with tracer.start_as_current_span("main_execution"):
+            await Console(team.run_stream(task=task))
     except Exception as e:
         print(f"Error: {e}")
     finally:

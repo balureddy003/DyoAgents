@@ -1,0 +1,95 @@
+{
+    "id": "11",
+    "team_id": "team-11",
+    "name": "All Agent Team",
+    "status": "visible",
+    "created": "2025-07-15T00:00:00.000Z",
+    "created_by": "system",
+    "logo": "Share2",
+    "plan": "Extended Magentic Agent Test Plan",
+    "description": "This team uses all extended MagenticOne agents including RAG, MCP, WebSurfer, Proxy, Executor and Orchestrator for complex workflows.",
+    "agents": [
+      {
+        "input_key": "agent-001",
+        "type": "MagenticOne",
+        "name": "MCPAgent",
+        "system_message": "You are helpful Data provider. Your task is to provide data in form of CSV format.",
+        "description": "Custom agent for interacting with MCP SSE tools.",
+        "icon": "DatabaseZap"
+      },
+      {
+        "input_key": "agent-002",
+        "type": "MagenticOne",
+        "name": "RAGAgent",
+        "system_message": "You perform RAG over internal indexed knowledge.",
+        "description": "Fetches and summarizes from internal knowledge bases.",
+        "icon": "BookOpenText"
+      },
+      {
+        "input_key": "agent-003",
+        "type": "MagenticOne",
+        "name": "WebSurfer",
+        "system_message": "Use web search when asked for recent events, news, or external topics not in internal data.",
+        "description": "Web-based retrieval agent using online sources.",
+        "icon": "Globe"
+      },
+      {
+        "input_key": "agent-004",
+        "type": "MagenticOne",
+        "name": "CodeExecutor",
+        "system_message": "You only execute code blocks. Return only output.",
+        "description": "Executes code for validation and scripting.",
+        "icon": "PlaySquare"
+      },
+      {
+        "input_key": "agent-005",
+        "type": "MagenticOne",
+        "name": "ProxyAgent",
+        "system_message": "Simulate user input. Use this for interactive agent testing.",
+        "description": "Used for simulation and debugging.",
+        "icon": "UserCog"
+      },
+      {
+        "input_key": "agent-006",
+        "type": "MagenticOne",
+        "name": "Orchestrator",
+        "system_message": "You are the central orchestrator. Route tasks to appropriate agents.",
+        "description": "Delegates tasks to relevant agents in the team.",
+        "icon": "Merge"
+      }
+    ],
+    "starting_tasks": [
+      {
+        "id": "task-web",
+        "name": "Get Latest AI News",
+        "prompt": "Search the web for the latest advancements in open-source LLMs.",
+        "created": "2025-07-15T10:00:00.000Z",
+        "creator": "system",
+        "logo": "Newspaper"
+      },
+      {
+        "id": "task-mcp",
+        "name": "Get Sensor Stats",
+        "prompt": "Fetch sensor data using MCPAgent and calculate weekly temperature trends.",
+        "created": "2025-07-15T10:05:00.000Z",
+        "creator": "system",
+        "logo": "Thermometer"
+      },
+      {
+        "id": "task-rag",
+        "name": "Summarize Policy Document",
+        "prompt": "Use RAG to summarize the access policy stored in internal index.",
+        "created": "2025-07-15T10:07:00.000Z",
+        "creator": "system",
+        "logo": "BookOpen"
+      },
+      {
+        "id": "task-code",
+        "name": "Run Temp Script",
+        "prompt": "Execute Python code to chart historical temperature data using matplotlib.",
+        "created": "2025-07-15T10:10:00.000Z",
+        "creator": "system",
+        "logo": "PlaySquare"
+      }
+    ]
+  }

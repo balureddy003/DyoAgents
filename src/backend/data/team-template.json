@@ -42,7 +42,43 @@
             "index_name": ""
         },
         { "input_key": "0005", "type": "MagenticOne", "name": "LlamaIndex" },
-        { "input_key": "0006", "type": "MagenticOne", "name": "MCPAction" }
+        { "input_key": "0006", "type": "MagenticOne", "name": "MCPAction" },
+        {
+            "input_key": "0007",
+            "type": "MagenticOne",
+            "name": "Orchestrator",
+            "system_message": "",
+            "description": "",
+            "icon": "🧠",
+            "index_name": ""
+        },
+        {
+            "input_key": "0008",
+            "type": "MagenticOne",
+            "name": "ProxyAgent",
+            "system_message": "",
+            "description": "",
+            "icon": "🧪",
+            "index_name": ""
+        },
+        {
+            "input_key": "0009",
+            "type": "MagenticOne",
+            "name": "WebSurfer2",
+            "system_message": "",
+            "description": "",
+            "icon": "🌐",
+            "index_name": ""
+        },
+        {
+            "input_key": "0010",
+            "type": "MagenticOne",
+            "name": "CodeExecutor2",
+            "system_message": "",
+            "description": "",
+            "icon": "🧾",
+            "index_name": ""
+        }
     ],
     "description": "Original MagenticOne Team. Includes Coder, Executor, FileSurfer and WebSurfer.",
     "starting_tasks": [

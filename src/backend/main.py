@@ -1,12 +1,31 @@
 from __future__ import annotations
+
+# OpenTelemetry tracing imports
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.openai import OpenAIInstrumentor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+def setup_logging(logs_dir="./logs", log_file="server.log"):
+    os.makedirs(logs_dir, exist_ok=True)
+    log_path = os.path.join(logs_dir, log_file)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.FileHandler(log_path),
+            logging.StreamHandler()
+        ]
+    )
+    logging.getLogger("startup").info(f"Logging setup complete. Log path: {log_path}")
+
 # File: main.py
 from providers.registry import PROVIDERS
 from fastapi import FastAPI, Depends, UploadFile, HTTPException, Query, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2AuthorizationCodeBearer
-#
-from azure.storage.blob import BlobServiceClient
-# from sqlalchemy.orm import Session
+
 import schemas, crud
 from database import MongoDB
 import os
@@ -30,11 +49,29 @@ import logging, os
 
 
 
+
+
+
+# Set up telemetry span exporter.
+otel_exporter = OTLPSpanExporter(endpoint="http://localhost:4317", insecure=True)
+span_processor = BatchSpanProcessor(otel_exporter)
+
+# Set up telemetry trace provider.
+tracer_provider = TracerProvider(resource=Resource({"service.name": "autogen-agentchat"}))
+tracer_provider.add_span_processor(span_processor)
+trace.set_tracer_provider(tracer_provider)
+
+# Instrument the OpenAI Python library
+OpenAIInstrumentor().instrument()
+
 os.environ["CHROMA_TELEMETRY_ENABLED"] = "false"
-print("Starting the server...")
-#print(f'AZURE_OPENAI_ENDPOINT:{os.getenv("AZURE_OPENAI_ENDPOINT")}')
-#print(f'COSMOS_DB_URI:{os.getenv("COSMOS_DB_URI")}')
-#print(f'AZURE_SEARCH_SERVICE_ENDPOINT:{os.getenv("AZURE_SEARCH_SERVICE_ENDPOINT")}')
+logging.getLogger("startup").info("Starting the server...")
+
+from dotenv import load_dotenv
+load_dotenv()
+setup_logging()
+
+
 from llama_index.core.indices.base import BaseIndex
 rag_index: BaseIndex | None = None
 llama_agent = None
@@ -86,22 +123,21 @@ async def lifespan(app: FastAPI):
     try:
         rag_index = load_index_from_chroma()
         if rag_index is None:
-            print("No existing index found. Building and persisting a new index...")
+            logging.getLogger("lifespan").info("No existing index found. Building and persisting a new index...")
             build_index_and_persist()
             rag_index = load_index_from_chroma()
         if rag_index is None:
             raise ValueError("Failed to load RAG index from persisted storage.")
     except Exception as e:
-        print(f"Failed to load index after build: {str(e)}")
+        logging.getLogger("lifespan").warning(f"Failed to load index after build: {str(e)}")
         rag_index = None
 
     global llama_agent
     from providers.llamaindex_provider import LlamaIndexProvider
     llama_agent = LlamaIndexProvider(index=rag_index)
 
-    logging.basicConfig(level=logging.WARNING,
-                        format='%(levelname)s: %(asctime)s - %(message)s')
-    print("Database initialized.")
+    # Removed logging.basicConfig here (already done in setup_logging)
+    # print("Database initialized.")
     yield
     app.state.db = None
 
@@ -117,20 +153,12 @@ app.add_middleware(
 )
 
 
-# Azure AD Authentication (Mocked for example)
-oauth2_scheme = OAuth2AuthorizationCodeBearer(
-    authorizationUrl="https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
-    tokenUrl="https://login.microsoftonline.com/common/oauth2/v2.0/token"
-)
 
-async def validate_tokenx(token: str = Depends(oauth2_scheme)):
-    # In production, implement proper token validation
-    print("Token:", token)
-    return {"sub": "user123", "name": "Test User"}  # Mocked user data
 
 async def validate_token(token: str = None):
     # In production, implement proper token validation
-    print("Token:", token)
+    logger = logging.getLogger("validate_token")
+    logger.info(f"Token: {token}")
     return {"sub": "user123", "name": "Test User"}  # Mocked user data
 
 
@@ -154,7 +182,7 @@ def write_log(path, log_entry):
 def get_current_time():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 def get_agent_icon(agent_name) -> str:
-    if agent_name == "MagenticOneOrchestrator":
+    if agent_name == "DyoPodOrchestrator":
         agent_icon = "🎻"
     elif agent_name == "WebSurfer":
         agent_icon = "🏄‍♂️"
@@ -280,12 +308,7 @@ async def display_log_message(log_entry, logs_dir, session_id, user_id, conversa
 
 
 
-# Azure Services Setup (Mocked for example)
-blob_service_client = BlobServiceClient.from_connection_string(
-    "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;" + \
-    "AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;" + \
-    "BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;"
-)
+
 
 # Chat Endpoint
 @app.post("/chat")
@@ -305,7 +328,7 @@ async def chat_endpoint(
     response = {
         "time": get_current_time(),
         "type": "Muj",
-        "source": "MagenticOneOrchestrator",
+        "source": "DyoPodOrchestrator",
         "content": mock_response,
         "stop_reason": None,
         "models_usage": None,
@@ -385,14 +408,12 @@ async def chat_stream(
     # db: Session = Depends(get_db),
     user: dict = Depends(validate_token)
 ):
-    
-   
     logger = logging.getLogger("chat_stream")
     logger.setLevel(logging.WARNING)
     logger.info(f"Chat stream started for session_id: {session_id} and user_id: {user_id}")
     # create folder for logs if not exists
-    logs_dir="./logs"
-    if not os.path.exists(logs_dir):    
+    logs_dir = "./logs"
+    if not os.path.exists(logs_dir):
         os.makedirs(logs_dir)
 
     # get the conversation from the database using user and session id
@@ -402,11 +423,10 @@ async def chat_stream(
     first_message = conversation["messages"][0]
     # get the task from the first message as content
     task = first_message["content"]
-    print("Task:", task)
+    logger.info(f"Task: {task}")
 
     _run_locally = conversation["run_mode_locally"]
     _agents = conversation["agents"]
-
 
     # Provider/model selection for chat stream
     provider_name = conversation.get("provider", os.getenv("DEFAULT_PROVIDER", "docker"))
@@ -428,32 +448,34 @@ async def chat_stream(
     await magentic_one.initialize(agents=_agents, session_id=session_id)
     logger.info(f"Initialized MagenticOne with agents: {len(_agents)} and session_id: {session_id} and user_id: {user_id}")
 
-    stream, cancellation_token = magentic_one.main(task = task)
+    stream, cancellation_token = magentic_one.main(task=task)
     logger.info(f"Stream and cancellation token created for task: {task}")
 
-
+    tracer = trace.get_tracer("autogen-agentchat")
+    # Wrap the team execution logic in a tracing span
     async def event_generator(stream, conversation):
-        async for log_entry in stream:
-            if isinstance(log_entry, ToolCallRequestEvent):
-                logger.warning(f"[TOOL CALL REQUEST] Tool: {log_entry.content[0].name}, Args: {log_entry.content[0].arguments}")
-            elif isinstance(log_entry, ToolCallExecutionEvent):
-                logger.info(f"[TOOL CALL RESPONSE] {log_entry.content[0].content}")
-            json_response = await display_log_message(
-                log_entry=log_entry,
-                logs_dir=logs_dir,
-                session_id=magentic_one.session_id,
-                conversation=conversation,
-                user_id=user_id
-            )    
-            yield f"data: {json.dumps(json_response.to_json())}\n\n"
-
+        with tracer.start_as_current_span("run_agentchat"):
+            async for log_entry in stream:
+                if isinstance(log_entry, ToolCallRequestEvent):
+                    logger.warning(f"[TOOL CALL REQUEST] Tool: {log_entry.content[0].name}, Args: {log_entry.content[0].arguments}")
+                elif isinstance(log_entry, ToolCallExecutionEvent):
+                    logger.info(f"[TOOL CALL RESPONSE] {log_entry.content[0].content}")
+                json_response = await display_log_message(
+                    log_entry=log_entry,
+                    logs_dir=logs_dir,
+                    session_id=magentic_one.session_id,
+                    conversation=conversation,
+                    user_id=user_id
+                )
+                yield f"data: {json.dumps(json_response.to_json())}\n\n"
 
     return StreamingResponse(event_generator(stream, conversation), media_type="text/event-stream")
 
 @app.get("/stop")
 async def stop(session_id: str = Query(...)):
+    logger = logging.getLogger("stop")
     try:
-        print("Stopping session:", session_id)
+        logger.info(f"Stopping session: {session_id}")
         cancellation_token = session_data[session_id].get("cancellation_token")
         if (cancellation_token):
             cancellation_token.cancel()
@@ -461,7 +483,7 @@ async def stop(session_id: str = Query(...)):
         else:
             return {"status": "error", "message": "Cancellation token not found."}
     except Exception as e:
-        print(f"Error stopping session {session_id}: {str(e)}")
+        logger.error(f"Error stopping session {session_id}: {str(e)}")
         return {"status": "error", "message": f"Error stopping session: {str(e)}"}
 
 # New endpoint to retrieve all conversations with pagination.
@@ -481,7 +503,7 @@ async def list_all_conversations(
         )
         return conversations
     except Exception as e:
-        print(f"Error retrieving conversations: {str(e)}")
+        logging.getLogger("conversations").error(f"Error retrieving conversations: {str(e)}")
         return {"conversations": [], "total_count": 0, "page": 1, "total_pages": 1}
 
 # New endpoint to retrieve conversations for the authenticated user.
