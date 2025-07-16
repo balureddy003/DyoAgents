@@ -219,6 +219,13 @@ docker = [
 mcp = [
     { name = "mcp" },
 ]
+web-surfer = [
+    { name = "autogen-agentchat" },
+    { name = "magika" },
+    { name = "markitdown", extra = ["all"] },
+    { name = "pillow" },
+    { name = "playwright" },
+]
 
 [[package]]
 name = "azure-ai-agents"
@@ -395,7 +402,7 @@ dependencies = [
     { name = "aiohttp" },
     { name = "autogen-agentchat" },
     { name = "autogen-core" },
-    { name = "autogen-ext", extra = ["azure", "docker", "mcp"] },
+    { name = "autogen-ext", extra = ["azure", "docker", "mcp", "web-surfer"] },
     { name = "azure-communication-email" },
     { name = "azure-cosmos" },
     { name = "azure-identity" },
@@ -413,7 +420,7 @@ dependencies = [
     { name = "llama-index-embeddings-openai" },
     { name = "llama-index-readers-file" },
     { name = "llama-index-vector-stores-chroma" },
-    { name = "markitdown" },
+    { name = "markitdown", extra = ["all"] },
     { name = "mcp" },
     { name = "ollama" },
     { name = "openai" },
@@ -439,7 +446,7 @@ requires-dist = [
     { name = "aiohttp", specifier = "==3.11.11" },
     { name = "autogen-agentchat", specifier = "==0.6.4" },
     { name = "autogen-core", specifier = "==0.6.4" },
-    { name = "autogen-ext", extras = ["docker", "mcp", "azure", "tools"], specifier = "==0.6.4" },
+    { name = "autogen-ext", extras = ["docker", "mcp", "azure", "tools", "web-surfer"], specifier = "==0.6.4" },
     { name = "azure-communication-email", specifier = "==1.0.0" },
     { name = "azure-cosmos", specifier = "==4.9.0" },
     { name = "azure-identity", specifier = "==1.19.0" },
@@ -457,7 +464,7 @@ requires-dist = [
     { name = "llama-index-embeddings-openai", specifier = "~=0.1.10" },
     { name = "llama-index-readers-file", specifier = "~=0.1.5" },
     { name = "llama-index-vector-stores-chroma", specifier = "==0.1.4" },
-    { name = "markitdown", specifier = "==0.0.2" },
+    { name = "markitdown", extras = ["all"], specifier = ">=0.1.0a3,<0.2.dev0" },
     { name = "mcp", specifier = "==1.8.1" },
     { name = "ollama" },
     { name = "openai", specifier = "==1.66.0" },
@@ -1770,6 +1777,24 @@ wheels = [
 ]
 
 [[package]]
+name = "magika"
+version = "0.6.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "numpy" },
+    { name = "onnxruntime" },
+    { name = "python-dotenv" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fe/b6/8fdd991142ad3e037179a494b153f463024e5a211ef3ad948b955c26b4de/magika-0.6.2.tar.gz", hash = "sha256:37eb6ae8020f6e68f231bc06052c0a0cbe8e6fa27492db345e8dc867dbceb067", size = 3036634, upload-time = "2025-05-02T14:54:18.88Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c2/07/4f7748f34279f2852068256992377474f9700b6fbad6735d6be58605178f/magika-0.6.2-py3-none-any.whl", hash = "sha256:5ef72fbc07723029b3684ef81454bc224ac5f60986aa0fc5a28f4456eebcb5b2", size = 2967609, upload-time = "2025-05-02T14:54:09.696Z" },
+    { url = "https://files.pythonhosted.org/packages/64/6d/0783af677e601d8a42258f0fbc47663abf435f927e58a8d2928296743099/magika-0.6.2-py3-none-macosx_11_0_arm64.whl", hash = "sha256:9109309328a1553886c8ff36c2ee9a5e9cfd36893ad81b65bf61a57debdd9d0e", size = 12404787, upload-time = "2025-05-02T14:54:16.963Z" },
+    { url = "https://files.pythonhosted.org/packages/8a/ad/42e39748ddc4bbe55c2dc1093ce29079c04d096ac0d844f8ae66178bc3ed/magika-0.6.2-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:57cd1d64897634d15de552bd6b3ae9c6ff6ead9c60d384dc46497c08288e4559", size = 15091089, upload-time = "2025-05-02T14:54:11.59Z" },
+    { url = "https://files.pythonhosted.org/packages/b0/1f/28e412d0ccedc068fbccdae6a6233faaa97ec3e5e2ffd242e49655b10064/magika-0.6.2-py3-none-win_amd64.whl", hash = "sha256:711f427a633e0182737dcc2074748004842f870643585813503ff2553b973b9f", size = 12385740, upload-time = "2025-05-02T14:54:14.096Z" },
+]
+
+[[package]]
 name = "mammoth"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1808,33 +1833,36 @@ wheels = [
 
 [[package]]
 name = "markitdown"
-version = "0.0.2"
+version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "azure-ai-documentintelligence" },
-    { name = "azure-identity" },
     { name = "beautifulsoup4" },
     { name = "charset-normalizer" },
-    { name = "mammoth" },
+    { name = "defusedxml" },
+    { name = "magika" },
     { name = "markdownify" },
-    { name = "numpy" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/da/bd/b7ae7863ee556411fbb6ca19a4a7593ef2b3531d6cd10b979ba386a2dd4d/markitdown-0.1.2.tar.gz", hash = "sha256:85fe108a92bd18f317e75a36cf567a6fa812072612a898abf8c156d5d74c13c4", size = 39361, upload-time = "2025-05-28T17:06:10.423Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ed/33/d52d06b44c28e0db5c458690a4356e6abbb866f4abc00c0cf4eebb90ca78/markitdown-0.1.2-py3-none-any.whl", hash = "sha256:4881f0768794ffccb52d09dd86498813a6896ba9639b4fc15512817f56ed9d74", size = 57751, upload-time = "2025-05-28T17:06:08.722Z" },
+]
+
+[package.optional-dependencies]
+all = [
+    { name = "azure-ai-documentintelligence" },
+    { name = "azure-identity" },
+    { name = "lxml" },
+    { name = "mammoth" },
     { name = "olefile" },
-    { name = "openai" },
     { name = "openpyxl" },
     { name = "pandas" },
-    { name = "pathvalidate" },
     { name = "pdfminer-six" },
-    { name = "puremagic" },
     { name = "pydub" },
     { name = "python-pptx" },
-    { name = "requests" },
     { name = "speechrecognition" },
     { name = "xlrd" },
     { name = "youtube-transcript-api" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/69/bf/8d5ee5ceef8dc175b4c8714e6f5170e3bc38862eeb6a45f29433c64611c1/markitdown-0.0.2.tar.gz", hash = "sha256:678fc2c9bc4eded0941c01155251982cab1f86c8148c8ac7ca3869116d3d49d7", size = 21008, upload-time = "2025-03-08T00:21:55.828Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/4a/f9/d0d6c6a11a16e2e22faf79bb4a86764110a8b391a510d6bd5cbb4ec57f59/markitdown-0.0.2-py3-none-any.whl", hash = "sha256:6ee5a6b70fbc36ba1586a40d5ab1ea8ea7f89bf37ebbaaa11013e026dc55b16e", size = 21278, upload-time = "2025-03-08T00:21:56.851Z" },
 ]
 
 [[package]]
@@ -2702,15 +2730,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pathvalidate"
-version = "3.2.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/92/87/c7a2f51cc62df0495acb0ed2533a7c74cc895e569a1b020ee5f6e9fa4e21/pathvalidate-3.2.3.tar.gz", hash = "sha256:59b5b9278e30382d6d213497623043ebe63f10e29055be4419a9c04c721739cb", size = 61717, upload-time = "2025-01-03T14:06:42.789Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/14/c5a0e1a947909810fc4c043b84cac472b70e438148d34f5393be1bac663f/pathvalidate-3.2.3-py3-none-any.whl", hash = "sha256:5eaf0562e345d4b6d0c0239d0f690c3bd84d2a9a3c4c73b99ea667401b27bee1", size = 24130, upload-time = "2025-01-03T14:06:39.568Z" },
-]
-
-[[package]]
 name = "pdfminer-six"
 version = "20250327"
 source = { registry = "https://pypi.org/simple" }
@@ -2904,15 +2923,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b4/e5/9a81da3d8625f93c68c7ad007ce9340706a7ca902acc28b04184e8ac0693/pulsar_client-3.7.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:0e3516524f9a5e458dd85bca0bda54e62513399769833b1a3ab029484e5544f8", size = 5333349, upload-time = "2025-05-14T04:03:39.532Z" },
     { url = "https://files.pythonhosted.org/packages/08/26/8e4e8915f14967eb8ff9ace9f1e58b7bf45d4851acec9938bd24f1ba359e/pulsar_client-3.7.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:68fb5c38d38875a0984435f20469ae4281845f9a3bd864365f004ca0b639d1f0", size = 5627716, upload-time = "2025-05-14T04:03:42.269Z" },
     { url = "https://files.pythonhosted.org/packages/37/66/4b31b77d28c4d53f7b943d733cbb529e5bab567a5f4d3ba9d2dbabbb1a56/pulsar_client-3.7.0-cp312-cp312-win_amd64.whl", hash = "sha256:5cf4401f4932452b9cf7e18d6be94ab063e94074acf661c407c20b3060502856", size = 3685773, upload-time = "2025-05-14T04:03:44.457Z" },
-]
-
-[[package]]
-name = "puremagic"
-version = "1.28"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/09/2d/40599f25667733e41bbc3d7e4c7c36d5e7860874aa5fe9c584e90b34954d/puremagic-1.28.tar.gz", hash = "sha256:195893fc129657f611b86b959aab337207d6df7f25372209269ed9e303c1a8c0", size = 314945, upload-time = "2024-09-25T19:55:58.264Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c5/53/200a97332d10ed3edd7afcbc5f5543920ac59badfe5762598327999f012e/puremagic-1.28-py3-none-any.whl", hash = "sha256:e16cb9708ee2007142c37931c58f07f7eca956b3472489106a7245e5c3aa1241", size = 43241, upload-time = "2024-09-25T19:55:55.734Z" },
 ]
 
 [[package]]

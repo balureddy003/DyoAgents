@@ -1,9 +1,13 @@
 from autogen_agentchat.agents import AssistantAgent
 from autogen_core.models import ChatCompletionClient
+from autogen_core.model_context import BufferedChatCompletionContext
 from azure.search.documents import SearchClient
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents.models import VectorizableTextQuery
 from azure.identity import DefaultAzureCredential
+from autogen_agentchat.messages import StructuredMessage
+from pydantic import BaseModel
+from typing import Literal
 
 MAGENTIC_ONE_RAG_DESCRIPTION = "An agent that has access to internal index and can handle RAG tasks. Call this agent if you are getting questions on your internal index."
 
@@ -12,6 +16,10 @@ You are a helpful AI Assistant.
 When given a user query, use available tools to help the user with their request.
 Reply \"TERMINATE\" in the end when everything is done.
 """
+
+class RAGResponse(BaseModel):
+    source: str
+    content: str
 
 class MagenticOneRAGAgent(AssistantAgent):
     """An agent used by MagenticOne that provides RAG capabilities using an Azure Cognitive Search index.
@@ -28,12 +36,15 @@ class MagenticOneRAGAgent(AssistantAgent):
         description: str = MAGENTIC_ONE_RAG_DESCRIPTION,
     ):
         super().__init__(
-            name,
-            model_client,
+            name=name,
+            model_client=model_client,
             description=description,
             system_message=MAGENTIC_ONE_RAG_SYSTEM_MESSAGE,
             tools=[self.do_search],
+            output_content_type=RAGResponse,
             reflect_on_tool_use=True,
+            model_client_stream=True,
+            model_context=BufferedChatCompletionContext(buffer_size=5)
         )
 
         self.index_name = index_name
@@ -48,7 +59,7 @@ class MagenticOneRAGAgent(AssistantAgent):
             credential=credential,
         )
 
-    async def do_search(self, query: str) -> str:
+    async def do_search(self, query: str) -> RAGResponse:
         """Search indexed data using Azure Cognitive Search with vector-based queries."""
         search_client = self.config_search()
         fields = "text_vector"  # Ensure this matches the actual vector field in your index
@@ -70,4 +81,4 @@ class MagenticOneRAGAgent(AssistantAgent):
         for result in results:
             answer += result.get("chunk", "")
 
-        return answer
+        return RAGResponse(source="AzureCognitiveSearch", content=answer)

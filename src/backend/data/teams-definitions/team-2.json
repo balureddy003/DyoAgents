@@ -9,7 +9,7 @@
     "agents": [
         {
             "input_key": "20001",
-            "type": "MagenticOne",
+            "type": "DyoPod",
             "name": "Coder",
             "system_message": "",
             "description": "",
@@ -18,7 +18,7 @@
         },
         {
             "input_key": "20002",
-            "type": "MagenticOne",
+            "type": "DyoPod",
             "name": "Executor",
             "system_message": "",
             "description": "",

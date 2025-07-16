@@ -33,7 +33,10 @@ class MagenticOneCustomMCPAgent(AssistantAgent):
             model_client,
             description=description,
             system_message=system_message,
-            tools=adapter
+            tools=adapter,
+            reflect_on_tool_use=True,
+            model_client_stream=True,
+            max_tool_iterations=3
         )
         self.tool_cache = {}
         self.tool_call_limit = 1
@@ -130,9 +133,14 @@ class MagenticOneCustomMCPAgent(AssistantAgent):
         logger.debug(f"  Mailer Adapter: {adapter_mailer}")
         logger.debug(f"Server mode used: {server_mode}")
 
-        return cls(name, 
-                   model_client, 
-                   system_message, 
-                   description, 
-                   [adapter_data_provider, adapter_data_list_tables, adapter_mailer],
-                   user_id=user_id)
+        from autogen_core.model_context import BufferedChatCompletionContext
+        model_context = BufferedChatCompletionContext(buffer_size=5)
+
+        return cls(
+            name,
+            model_client,
+            system_message,
+            description,
+            [adapter_data_provider, adapter_data_list_tables, adapter_mailer],
+            user_id=user_id
+        )

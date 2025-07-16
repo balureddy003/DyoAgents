@@ -13,7 +13,7 @@ export const getAvatarSrc = (user: string) => {
     switch (user.toLowerCase()) {
       case 'user':
         return h1;
-      case 'magenticoneorchestrator':
+      case 'dyopodorchestrator':
         return lBrain;
       case 'coder':
         return lPen;
@@ -60,7 +60,7 @@ export  const getAvatarFallback = (user: string) => {
     switch (user.toLowerCase()) {
       case 'user':
         return 'U';
-      case 'magenticoneorchestrator':
+      case 'dyopodorchestrator':
         return 'O';
       case 'coder':
         return 'C';

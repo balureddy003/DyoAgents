@@ -8,10 +8,9 @@ dependencies = [
     "azure-identity==1.19.0",
     "python-dotenv==1.0.1",
     "autogen-agentchat==0.6.4",
-    "autogen-ext[docker,mcp,azure,tools]==0.6.4",
+    "autogen-ext[docker,mcp,azure,tools,web-surfer]==0.6.4",
     "autogen-core==0.6.4",
     "azure-search-documents==11.6.0b10",
-    "markitdown==0.0.2",
     "aiofiles==24.1.0",
     "aiohttp==3.11.11",
     "playwright==1.52.0",
@@ -44,5 +43,6 @@ dependencies = [
   "opentelemetry-exporter-otlp",
   "opentelemetry-instrumentation-openai",
   "opentelemetry-instrumentation-fastapi",
-  "opentelemetry-instrumentation-requests"
+  "opentelemetry-instrumentation-requests",
+  "markitdown[all] >= 0.1.0a3,<0.2.dev0"
 ]

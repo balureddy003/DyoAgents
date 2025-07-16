@@ -47,6 +47,12 @@ from ag_mo_agent import MagenticOneCustomAgent
 from ag_mo_rag_agent import MagenticOneRAGAgent
 from ag_mo_mcp_agent import MagenticOneCustomMCPAgent
 
+from ag_mo_code_executor_agent import MagenticOneCodeExecutorAgent
+from ag_mo_web_surfer_agent import MagenticOneWebSurferAgent
+
+from ag_mo_proxy_agent import MagenticOneProxyAgent
+from ag_mo_orchestrator_agent import MagenticOneOrchestratorAgent
+
 import re
 import uuid
 # Helper function to make a valid Python identifier from a name
@@ -261,6 +267,19 @@ class MagenticOneHelper:
             elif agent["type"] == "RAG":
                 with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
                     agent_list.append(_wrap_with_proxy(MagenticOneRAGAgent(agent["name"], model_client=client, index_name=agent["index_name"], description=agent["description"], AZURE_SEARCH_SERVICE_ENDPOINT=os.getenv("AZURE_SEARCH_SERVICE_ENDPOINT"))))
+            # --- Custom agent types ---
+            elif agent["type"] == "CustomCodeExecutor":
+                with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
+                    agent_list.append(_wrap_with_proxy(MagenticOneCodeExecutorAgent(agent["name"], model_client=client, system_message=agent["system_message"], description=agent["description"])))
+            elif agent["type"] == "CustomWebSurfer":
+                with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
+                    agent_list.append(_wrap_with_proxy(MagenticOneWebSurferAgent(agent["name"], model_client=client, system_message=agent["system_message"], description=agent["description"])))
+            elif agent["type"] == "CustomProxy":
+                with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
+                    agent_list.append(_wrap_with_proxy(MagenticOneProxyAgent(agent["name"], model_client=client, system_message=agent["system_message"], description=agent["description"])))
+            elif agent["type"] == "CustomOrchestrator":
+                with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
+                    agent_list.append(_wrap_with_proxy(MagenticOneOrchestratorAgent(agent["name"], model_client=client, system_message=agent["system_message"], description=agent["description"])))
             else:
                 raise ValueError("Unknown Agent!")
         return agent_list

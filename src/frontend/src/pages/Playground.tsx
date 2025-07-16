@@ -70,12 +70,12 @@ interface ChatMessage {
 export default function App() {
 
   const wellcomeMessage: ChatMessage = {
-    user: 'MagenticOneOrchestrator',
+    user: 'DyoPodOrchestrator',
     message: "My team is ready to assist you. Please type your task below to start.",
     // message: sampleMarkdown,
     time: new Date().toISOString(),
     // content: response.data.content,
-    source: 'MagenticOneOrchestrator',
+    source: 'DyoPod',
     session_id: 'dummy-generated-session-id',
   };
   // const debugMessages: ChatMessage[] = [
@@ -253,7 +253,7 @@ export default function App() {
     { value: 'Search', label: 'Search', icon: Search },
     { value: 'ChartNoAxesCombined', label: 'ChartNoAxesCombined', icon: ChartNoAxesCombined },
     { value: 'DatabaseZap', label: 'DatabaseZap', icon: DatabaseZap },
-    { value: 'MagenticOneOrchestrator', label: 'MagenticOneOrchestrator', icon: Bot },
+    { value: 'DyoPodOrchestrator', label: 'DyoPodOrchestrator', icon: Bot },
     { value: 'User', label: 'User', icon: User },
     { value: 'TaskResult', label: 'TaskResult', icon: Target },
   ];
@@ -298,8 +298,8 @@ export default function App() {
   const getAgentByName = (name: string): Agent | undefined => {
     if (!selectedTeam) return undefined;
     // add special case for MagenticOneOrchestrator
-    if (name === 'MagenticOneOrchestrator') {
-      return { input_key: "", type: "",name: "MagenticOneOrchestrator",system_message: "",description: "",icon: "MagenticOneOrchestrator",index_name: ""}
+    if (name === 'DyoPodOrchestrator') {
+      return { input_key: "", type: "",name: "DyoPodOrchestrator",system_message: "",description: "",icon: "DyoPodOrchestrator",index_name: ""}
     }
     // add special case for User
     if (name=== 'User') {

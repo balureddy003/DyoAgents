@@ -182,7 +182,7 @@ def write_log(path, log_entry):
 def get_current_time():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 def get_agent_icon(agent_name) -> str:
-    if agent_name == "MagenticOneOrchestrator":
+    if agent_name == "DyoPodOrchestrator":
         agent_icon = "🎻"
     elif agent_name == "WebSurfer":
         agent_icon = "🏄‍♂️"
@@ -328,7 +328,7 @@ async def chat_endpoint(
     response = {
         "time": get_current_time(),
         "type": "Muj",
-        "source": "MagenticOneOrchestrator",
+        "source": "DyoPodOrchestrator",
         "content": mock_response,
         "stop_reason": None,
         "models_usage": None,
