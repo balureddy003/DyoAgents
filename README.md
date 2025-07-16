@@ -24,6 +24,7 @@ Before you begin, ensure you have the following installed:
 - [Node.js](https://nodejs.org/) (v18 or above)
 - [Python](https://www.python.org/) (v3.10 or higher)
 - [uv](https://github.com/astral-sh/uv) (Python package/dependency manager)
+- [Jaeger](https://www.jaegertracing.io/docs/latest/getting-started/) (for distributed tracing)
 
 ---
 
@@ -87,6 +88,43 @@ uv run fastapi dev main.py --port 8333
 - Configure `.env` with MongoDB connection, LLM endpoints
 - Add `CORS_ALLOW_ORIGINS` if running UI remotely
 - Expose MCP + backend + frontend via reverse proxy if hosting (e.g. nginx)
+
+---
+
+## 📈 Jaeger Tracing Setup
+
+Jaeger is used to trace agent interactions and backend operations.
+
+### 🔧 Local Setup with Docker
+
+Run the Jaeger all-in-one image:
+
+```bash
+docker run -d --name jaeger \
+  -e COLLECTOR_ZIPKIN_HTTP_PORT=9411 \
+  -p 5775:5775/udp \
+  -p 6831:6831/udp \
+  -p 6832:6832/udp \
+  -p 5778:5778 \
+  -p 16686:16686 \
+  -p 14268:14268 \
+  -p 14250:14250 \
+  -p 9411:9411 \
+  jaegertracing/all-in-one:1.54
+```
+
+Access the UI at: [http://localhost:16686](http://localhost:16686)
+
+### 🧪 Verify Integration
+
+Ensure the backend and MCP services export traces to Jaeger by setting the following in `.env` or FastAPI settings:
+
+```env
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+OTEL_SERVICE_NAME=dyo-backend
+```
+
+Also configure OpenTelemetry in your FastAPI app to initialize tracing with Jaeger exporter.
 
 ---
 
