@@ -16,16 +16,16 @@ class MongoDB:
         load_dotenv("./.env", override=True)
         # Get MongoDB connection details
         MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
-        MONGO_DATABASE = os.getenv("MONGO_DATABASE", "ag_demo")
+        MONGO_DATABASE = os.getenv("MONGO_DATABASE", "DyoPods_DB")
         
         self.client = MongoClient(MONGO_URI)
         self.database = self.client[MONGO_DATABASE]
         self.collections = {}
         # Pre-initialize default collections
-        self.collections["ag_demo"] = self.database["ag_demo"]
-        self.collections["agent_teams"] = self.database["agent_teams"]
+        self.collections["DyoPods_demo"] = self.database["DyoPods_demo"]
+        self.collections["DyoPods_teams"] = self.database["DyoPods_teams"]
     
-    def get_collection(self, collection_name: str = "ag_demo"):
+    def get_collection(self, collection_name: str = "DyoPods_demo"):
         if collection_name in self.collections:
             return self.collections[collection_name]
         collection = self.database[collection_name]
@@ -121,12 +121,12 @@ class MongoDB:
             "run_mode_locally": False,
             "timestamp": conversation_details.time,
         }
-        collection = self.get_collection("ag_demo")
+        collection = self.get_collection("DyoPods_demo")
         response = collection.insert_one(conversation_document_item)
         return response
 
     def fetch_user_conversations(self, user_id: Optional[str] = None, page: int = 1, page_size: int = 20) -> Dict:
-        collection = self.get_collection("ag_demo")
+        collection = self.get_collection("DyoPods_demo")
         
         # Query for total count
         if user_id is None:
@@ -157,48 +157,48 @@ class MongoDB:
         }
 
     def fetch_user_conversation(self, user_id: str, session_id: str):
-        collection = self.get_collection("ag_demo")
+        collection = self.get_collection("DyoPods_demo")
         item = collection.find_one({"user_id": user_id, "session_id": session_id})
         return self.serialize_document(item)
 
     def delete_user_conversation(self, user_id: str, session_id: str):
-        collection = self.get_collection("ag_demo")
+        collection = self.get_collection("DyoPods_demo")
         result = collection.delete_one({"user_id": user_id, "session_id": session_id})
         if result.deleted_count == 0:
             return {"error": f"No conversation found with user_id {user_id} and session_id {session_id}."}
         return {"success": True}
 
     def delete_user_all_conversations(self, user_id: str):
-        collection = self.get_collection("ag_demo")
+        collection = self.get_collection("DyoPods_demo")
         result = collection.delete_many({"user_id": user_id})
         if result.deleted_count == 0:
             return {"error": f"No conversation found with user_id {user_id}."}
         return {"success": True}
 
     def create_team(self, team: dict):
-        collection = self.get_collection("agent_teams")
+        collection = self.get_collection("DyoPods_teams")
         response = collection.insert_one(team)
         return {"inserted_id": str(response.inserted_id)}
 
     def get_teams(self):
-        collection = self.get_collection("agent_teams")
+        collection = self.get_collection("DyoPods_teams")
         items = list(collection.find({}))
         return self.serialize_document(items)
 
     def get_team(self, team_id: str):
-        collection = self.get_collection("agent_teams")
+        collection = self.get_collection("DyoPods_teams")
         item = collection.find_one({"team_id": team_id})
         return self.serialize_document(item)
 
     def update_team(self, team_id: str, team: dict):
-        collection = self.get_collection("agent_teams")
+        collection = self.get_collection("DyoPods_teams")
         result = collection.update_one({"team_id": team_id}, {"$set": team})
         if result.matched_count == 0:
             return {"error": "Team not found"}
         return {"success": True}
 
     def delete_team(self, team_id: str):
-        collection = self.get_collection("agent_teams")
+        collection = self.get_collection("DyoPods_teams")
         result = collection.delete_one({"team_id": team_id})
         if result.deleted_count == 0:
             return {"error": "Team not found"}

@@ -54,6 +54,3 @@ Dyogents turns agents into first-class citizens:
 
 ## 📦 Quickstart (WIP)
 
-```bash
-git clone https://github.com/dyogents/dyogents.git
-cd dyogents
