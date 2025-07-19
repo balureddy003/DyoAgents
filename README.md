@@ -1,133 +1,56 @@
-# DyoPods
+# 🧠 Dyogents
 
-**DyoPods** is a modular AI agent framework where domain-specific agents work in coordinated pods. Each pod acts as a smart team, enabling contextual decision-making, automation, and collaboration across systems like MES, ERP, or CRM. Scalable, LLM-ready, and built for real-world operations.
+**Dyogents** is an open-source platform for building, orchestrating, and running intelligent teams of LLM-powered agents. Designed for enterprises, startups, and developers, Dyogents helps you automate workflows across domains like manufacturing, finance, customer support, and more — with full modularity, governance, and no vendor lock-in.
 
----
-
-## 🚀 Features
-
-- Multi-agent orchestration via pods
-- Domain-specific agents (RAG, MCP, MES, ERP, etc.)
-- Built-in tracing, logging, and visualization
-- Integration-ready with MongoDB, Ollama, LiteLLM
-- Web-based UI for agent interaction
+> “Composable AI agents working together like your smartest team.”
 
 ---
 
-## 🧰 Prerequisites
+## 🚀 What is Dyogents?
 
-Before you begin, ensure you have the following installed:
-
-- [Docker](https://www.docker.com/)
-- [Ollama](https://ollama.com/)
-- [LiteLLM](https://docs.litellm.ai/docs/)
-- [Node.js](https://nodejs.org/) (v18 or above)
-- [Python](https://www.python.org/) (v3.10 or higher)
-- [uv](https://github.com/astral-sh/uv) (Python package/dependency manager)
-- [Jaeger](https://www.jaegertracing.io/docs/latest/getting-started/) (for distributed tracing)
+Dyogents turns agents into first-class citizens:
+- 🤖 Modular agents ("pods") with tools, memory, and decision logic
+- 🔌 Integrate with real systems like SAP, Salesforce, Kafka, OPC-UA, etc.
+- 🔁 Coordinate agents via chat, task DAGs, or collaborative workflows
+- 🧠 Use any LLM: OpenAI, Claude, Ollama, HuggingFace, and more
+- 🛡 Track, trace, and govern with audit logs and cost budgets
 
 ---
 
-## 🗃️ MongoDB (Local)
+## 🔧 Platform Highlights
 
-Start MongoDB locally (Docker recommended):
+### 🧱 Agent Pods
+- Domain-specific agents for ERP, MES, RAG, IoT, finance, and more
+- YAML-based definitions with LLM + toolchains + memory
 
-```bash
-docker run -d -p 27017:27017 --name dyopods-mongo mongo
-```
+### ⚙️ Dyogents Grid (Runtime)
+- Task routing, context sharing, memory, and fallback logic
 
----
+### 🛍 Dyogents Hub (Marketplace)
+- Discover, publish, and reuse agents and prebuilt workflows
 
-## 🖥️ Backend Setup
+### 🎨 Dyogents Studio (Visual Builder)
+- Drag-and-drop canvas for designing agent pipelines
+- Ideal for domain experts and low-code builders
 
-```bash
-cd backend
-uv venv
-source .venv/bin/activate
-uv sync
-playwright install --with-deps chromium
+### 🔌 Dyogents Mesh (Integrations)
+- Native support for REST, SAP, Kafka, Salesforce, MongoDB, OPC-UA
 
-# Start the FastAPI backend
-uvicorn main:app --reload
-```
-
----
-
-## 🌐 Frontend Setup
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### 🔐 Dyogents Observe (Governance)
+- Full observability: tracing, RBAC, cost tracking, tool audits
 
 ---
 
-## 🔁 MCP Server Setup
+## 🧠 Why Dyogents?
 
-```bash
-cd mcp
-uv venv
-source .venv/bin/activate
-uv sync
-
-# Rename .env file
-cp sample.env .env
-
-# Start the MCP FastAPI server
-uvicorn main:app --reload
-# OR
-uv run fastapi dev main.py --port 8333
-```
+| Problem                     | Dyogents Solution                              |
+|----------------------------|-------------------------------------------------|
+| Shadow AI projects         | Central governance via Dyogents Observe        |
+| Vendor lock-in             | Bring your own LLM, deploy anywhere             |
+| Siloed agents              | Coordinate via Grid and Mesh                   |
+| Hard-to-integrate systems  | Use Mesh for plug-and-play integrations        |
 
 ---
 
-## 📦 Deployment Tips
+## 📦 Quickstart (WIP)
 
-- Use `tmux` or `pm2` to keep servers alive in production
-- Configure `.env` with MongoDB connection, LLM endpoints
-- Add `CORS_ALLOW_ORIGINS` if running UI remotely
-- Expose MCP + backend + frontend via reverse proxy if hosting (e.g. nginx)
-
----
-
-## 📈 Jaeger Tracing Setup
-
-Jaeger is used to trace agent interactions and backend operations.
-
-### 🔧 Local Setup with Docker
-
-Run the Jaeger all-in-one image:
-
-```bash
-docker run -d --name jaeger \
-  -e COLLECTOR_ZIPKIN_HTTP_PORT=9411 \
-  -p 5775:5775/udp \
-  -p 6831:6831/udp \
-  -p 6832:6832/udp \
-  -p 5778:5778 \
-  -p 16686:16686 \
-  -p 14268:14268 \
-  -p 14250:14250 \
-  -p 9411:9411 \
-  jaegertracing/all-in-one:1.54
-```
-
-Access the UI at: [http://localhost:16686](http://localhost:16686)
-
-### 🧪 Verify Integration
-
-Ensure the backend and MCP services export traces to Jaeger by setting the following in `.env` or FastAPI settings:
-
-```env
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
-OTEL_SERVICE_NAME=dyo-backend
-```
-
-Also configure OpenTelemetry in your FastAPI app to initialize tracing with Jaeger exporter.
-
----
-
-## 📄 License
-
-MIT License © DyoPods Contributors

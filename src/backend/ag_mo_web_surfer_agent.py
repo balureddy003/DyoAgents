@@ -9,7 +9,7 @@ Use web search when asked for recent events, news, or external topics not in int
 """
 
 class MagenticOneWebSurferAgent(AssistantAgent):
-    def __init__(self, name: str, model_client: ChatCompletionClient):
+    def __init__(self, name: str, model_client: ChatCompletionClient, **kwargs):
         super().__init__(
             name=name,
             model_client=model_client,
@@ -18,5 +18,6 @@ class MagenticOneWebSurferAgent(AssistantAgent):
             tools=[MultimodalWebSurfer()],
             model_context=BufferedChatCompletionContext(buffer_size=4),
             reflect_on_tool_use=True,
-            model_client_stream=True
+            model_client_stream=True,
+            **kwargs
         )
