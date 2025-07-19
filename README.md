@@ -1,6 +1,6 @@
 # 🧠 Dyogents
 
-**Dyogents** is an open-source platform for building, orchestrating, and running intelligent teams of LLM-powered agents. Designed for enterprises, startups, and developers, Dyogents helps you automate workflows across domains like manufacturing, finance, customer support, and more — with full modularity, governance, and no vendor lock-in.
+**Dyogents** is an open-source platform for building, orchestrating, and deploying intelligent agents powered by LLMs. Designed for real-world enterprise workflows, Dyogents lets you compose domain-specific agents into collaborative teams—integrated with your existing systems, governed with precision, and extensible by design.
 
 > “Composable AI agents working together like your smartest team.”
 
@@ -52,8 +52,52 @@ Dyogents turns agents into first-class citizens:
 
 ---
 
-## 📦 Quickstart (WIP)
+## 📦 Quickstart
 
 ```bash
 git clone https://github.com/dyogents/dyogents.git
 cd dyogents
+pip install -r requirements.txt
+dyogents init --template planner-agent
+```
+
+---
+
+## 📚 Documentation
+
+📘 Powered by Docusaurus  
+➡️ [https://docs.dyogents.dev](https://docs.dyogents.dev)
+
+Includes:
+- Agent Spec (DyoSpec)
+- Visual Studio Walkthrough
+- Integration Examples
+- Runtime API Docs
+- Contribution Guide
+
+---
+
+## 🛠 Tech Stack
+
+- Python 3.10+
+- FastAPI + AsyncIO
+- MongoDB or PostgreSQL
+- OpenAI / Claude / Ollama / HuggingFace
+- Kafka, SAP, Salesforce, REST, OPC-UA
+
+---
+
+## 👥 Contributing
+
+We welcome contributions:
+- Agent templates and bundles
+- System connectors and plugins
+- Visual Studio UI components
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
+
+---
+
+## 📄 License
+
+MIT License © 2025 [Dyogents Foundation](https://dyogents.org)
