@@ -35,9 +35,9 @@ class MagenticOneCustomMCPAgent(AssistantAgent):
             system_message=system_message,
             tools=adapter,
             reflect_on_tool_use=True,
-            model_client_stream=True,
             max_tool_iterations=3
         )
+        self.model_client = model_client
         self.tool_cache = {}
         self.tool_call_limit = 1
         self.user_id = user_id
