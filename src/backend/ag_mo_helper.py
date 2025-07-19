@@ -248,6 +248,28 @@ class MagenticOneHelper:
                     file_surfer = FileSurfer("FileSurfer", model_client=client)
                     file_surfer._browser.set_path(os.path.join(os.getcwd(), "data"))
                     agent_list.append(file_surfer)
+            # --- Insert MCPAgent and RAGAgent blocks here ---
+            elif agent["type"] == "MagenticOne" and agent["name"] == "MCPAgent":
+                with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
+                    model_name = self.model or os.getenv("DEFAULT_MODEL", "llama3")
+                    custom_client = OllamaChatCompletionClient(model=model_name)
+                    custom_agent = await MagenticOneCustomMCPAgent.create(
+                        agent["name"],
+                        custom_client,
+                        agent["system_message"] + "\n\n in case of email use this address as TO: " + self.user_id,
+                        agent["description"],
+                        self.user_id
+                    )
+                    agent_list.append(_wrap_with_proxy(custom_agent))
+            elif agent["type"] == "MagenticOne" and agent["name"] == "RAGAgent":
+                with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
+                    agent_list.append(_wrap_with_proxy(MagenticOneRAGAgent(
+                        agent["name"],
+                        model_client=client,
+                        index_name=agent.get("index_name", "default"),
+                        description=agent["description"],
+                        AZURE_SEARCH_SERVICE_ENDPOINT=os.getenv("AZURE_SEARCH_SERVICE_ENDPOINT")
+                    )))
             elif agent["type"] == "Custom":
                 with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
                     agent_list.append(_wrap_with_proxy(MagenticOneCustomAgent(agent["name"], client, agent["system_message"], agent["description"])))
@@ -268,18 +290,72 @@ class MagenticOneHelper:
                 with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
                     agent_list.append(_wrap_with_proxy(MagenticOneRAGAgent(agent["name"], model_client=client, index_name=agent["index_name"], description=agent["description"], AZURE_SEARCH_SERVICE_ENDPOINT=os.getenv("AZURE_SEARCH_SERVICE_ENDPOINT"))))
             # --- Custom agent types ---
-            elif agent["type"] == "CustomCodeExecutor":
+            elif agent["type"] == "MagenticOne" and agent["name"] == "CodeExecutor":
                 with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
-                    agent_list.append(_wrap_with_proxy(MagenticOneCodeExecutorAgent(agent["name"], model_client=client, system_message=agent["system_message"], description=agent["description"])))
-            elif agent["type"] == "CustomWebSurfer":
+                    if self.run_locally:
+                        executor_agent = CodeExecutorAgent(
+                            agent["name"],
+                            code_executor=await DockerCommandLineCodeExecutor(work_dir=logs_dir).start()
+                        )
+                    else:
+                        endpoint = os.getenv("POOL_MANAGEMENT_ENDPOINT")
+                        if not endpoint:
+                            executor_agent = CodeExecutorAgent(
+                                agent["name"],
+                                code_executor=await DockerCommandLineCodeExecutor(work_dir=logs_dir).start()
+                            )
+                        else:
+                            from azure.identity import DefaultAzureCredential
+                            executor_agent = CodeExecutorAgent(
+                                agent["name"],
+                                code_executor=ACADynamicSessionsCodeExecutor(
+                                    pool_management_endpoint=endpoint,
+                                    credential=DefaultAzureCredential(),
+                                    work_dir=tempfile.mkdtemp()
+                                )
+                            )
+                    agent_list.append(_wrap_with_proxy(executor_agent))
+            elif agent["type"] == "MagenticOne" and agent["name"] == "ProxyAgent":
                 with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
-                    agent_list.append(_wrap_with_proxy(MagenticOneWebSurferAgent(agent["name"], model_client=client, system_message=agent["system_message"], description=agent["description"])))
-            elif agent["type"] == "CustomProxy":
+                    try:
+                        proxy_agent = MagenticOneProxyAgent(name=agent["name"], model_client=client)
+                    except TypeError:
+                        try:
+                            proxy_agent = MagenticOneProxyAgent(agent["name"], client)
+                        except TypeError:
+                            # fallback to minimal arguments if only name is supported
+                            proxy_agent = MagenticOneProxyAgent(agent["name"])
+                    agent_list.append(_wrap_with_proxy(proxy_agent))
+            elif agent["type"] == "MagenticOne" and agent["name"] == "Orchestrator":
                 with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
-                    agent_list.append(_wrap_with_proxy(MagenticOneProxyAgent(agent["name"], model_client=client, system_message=agent["system_message"], description=agent["description"])))
-            elif agent["type"] == "CustomOrchestrator":
+                    try:
+                        agent_list.append(_wrap_with_proxy(MagenticOneOrchestratorAgent(
+                            name=agent["name"],
+                            model_client=client,
+                            system_message=agent.get("system_message", ""),
+                            description=agent.get("description", "")
+                        )))
+                    except TypeError:
+                        # fallback to minimal arguments but always provide model_client if supported
+                        try:
+                            agent_list.append(_wrap_with_proxy(MagenticOneOrchestratorAgent(agent["name"], model_client=client)))
+                        except TypeError:
+                            agent_list.append(_wrap_with_proxy(MagenticOneOrchestratorAgent(agent["name"])))
+            elif agent["type"] == "UserProxyAgent":
                 with tracer.start_as_current_span(f"init_agent_{agent['name']}"):
-                    agent_list.append(_wrap_with_proxy(MagenticOneOrchestratorAgent(agent["name"], model_client=client, system_message=agent["system_message"], description=agent["description"])))
+                    from autogen_agentchat.agents import UserProxyAgent
+                    try:
+                        user_agent = UserProxyAgent(name=agent["name"], model_client=client)
+                    except TypeError:
+                        try:
+                            user_agent = UserProxyAgent(agent["name"], client)
+                        except TypeError:
+                            try:
+                                user_agent = UserProxyAgent(name=agent["name"])
+                            except TypeError:
+                                user_agent = UserProxyAgent()
+                                user_agent.name = agent["name"]
+                    agent_list.append(_wrap_with_proxy(user_agent))
             else:
                 raise ValueError("Unknown Agent!")
         return agent_list
@@ -318,5 +394,10 @@ if __name__ == "__main__":
         {"input_key": "0002", "type": "MagenticOne", "name": "Executor", "system_message": "", "description": "", "icon": "💻"},
         {"input_key": "0003", "type": "MagenticOne", "name": "FileSurfer", "system_message": "", "description": "", "icon": "📂"},
         {"input_key": "0004", "type": "MagenticOne", "name": "WebSurfer", "system_message": "", "description": "", "icon": "🏄‍♂️"},
+        {"input_key": "0005", "type": "MagenticOne", "name": "MCPAgent", "system_message": "", "description": "", "icon": "🧠"},
+        {"input_key": "0006", "type": "MagenticOne", "name": "RAGAgent", "system_message": "", "description": "", "icon": "📚"},
+        {"input_key": "0007", "type": "MagenticOne", "name": "CodeExecutor", "system_message": "", "description": "", "icon": "⚙️"},
+        {"input_key": "0008", "type": "MagenticOne", "name": "ProxyAgent", "system_message": "", "description": "", "icon": "🛡️"},
+        {"input_key": "0009", "type": "MagenticOne", "name": "Orchestrator", "system_message": "", "description": "", "icon": "🎯"},
     ]
     asyncio.run(main(MAGENTIC_ONE_DEFAULT_AGENTS, args.task, args.run_locally, args.provider, args.model))

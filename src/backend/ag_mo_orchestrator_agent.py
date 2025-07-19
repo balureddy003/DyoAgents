@@ -8,7 +8,7 @@ You are the central orchestrator. Based on task type, delegate work to the appro
 """
 
 class MagenticOneOrchestratorAgent(AssistantAgent):
-    def __init__(self, name: str, model_client: ChatCompletionClient):
+    def __init__(self, name: str, model_client: ChatCompletionClient, **kwargs):
         super().__init__(
             name=name,
             model_client=model_client,
@@ -16,5 +16,6 @@ class MagenticOneOrchestratorAgent(AssistantAgent):
             system_message=MAGENTIC_ONE_ORCHESTRATOR_SYSTEM_MESSAGE,
             model_context=BufferedChatCompletionContext(buffer_size=6),
             reflect_on_tool_use=True,
-            model_client_stream=True
+            model_client_stream=True,
+            **kwargs
         )

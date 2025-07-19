@@ -13,3 +13,9 @@ class MagenticOneCodeExecutorAgent(CodeExecutorAgent):
             description=MAGENTIC_ONE_CODE_EXECUTOR_DESCRIPTION,
             system_message=MAGENTIC_ONE_CODE_EXECUTOR_SYSTEM_MESSAGE
         )
+
+    def generate_reply(self, messages, **kwargs):
+        for msg in messages:
+            if msg.get("role") == "user" and not msg.get("content", "").strip().startswith("```"):
+                msg["content"] = f"```python\n{msg['content']}\n```"
+        return super().generate_reply(messages, **kwargs)
