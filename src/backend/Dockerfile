@@ -13,6 +13,8 @@ WORKDIR /code/src/backend
 
 ENV VIRTUAL_ENV=/code/.venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ENV DEBUG_AGENT_LOGS=true
 
 # Copy only dependency metadata first to leverage Docker cache
 COPY src/backend/pyproject.toml /code/pyproject.toml
@@ -22,13 +24,12 @@ RUN pip install uv \
     && uv venv .venv \
     && . .venv/bin/activate && uv sync
 
+
 # Copy the rest of the source code
 COPY . /code
-
-
 
 # Expose API port
 EXPOSE 3100
 
 # Run app
-CMD [".venv/bin/python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3100", "--workers", "4"]
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3100"]
