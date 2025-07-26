@@ -1,36 +1,34 @@
-FROM python:3-slim
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+FROM python:3.12-slim
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gcc g++ curl \
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libxcomposite1 \
+    libxrandr2 libxdamage1 libgbm1 libxshmfence1 libxfixes3 \
+    libasound2 libpangocairo-1.0-0 libpangoft2-1.0-0 libgtk-3-0 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory in the container
-WORKDIR /code
+# Set working directory
+WORKDIR /code/src/backend
 
-# COPY requirements.txt .
-# RUN pip install --no-cache-dir --upgrade -r requirements.txt
+ENV VIRTUAL_ENV=/code/.venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
+# Copy only dependency metadata first to leverage Docker cache
+COPY src/backend/pyproject.toml /code/pyproject.toml
 
-# Enable bytecode compilation
-ENV UV_COMPILE_BYTECODE=1
+# Install uv and all dependencies in one layer
+RUN pip install uv \
+    && uv venv .venv \
+    && . .venv/bin/activate && uv sync
 
-# Copy from the cache instead of linking since it's a mounted volume
-ENV UV_LINK_MODE=copy
-
-
-# RUN playwright install --with-deps chromium
-# Copy the rest of the application code into the container
-# COPY . .
-
+# Copy the rest of the source code
 COPY . /code
-RUN uv sync --locked --no-dev
-
-# Place executables in the environment at the front of the path
-ENV PATH="/code/.venv/bin:$PATH"
-RUN playwright install --with-deps chromium
 
 
 
-# Expose the port that the app will run on
+# Expose API port
 EXPOSE 3100
 
-# Command to run the application using Uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3100", "--workers", "4"]
+# Run app
+CMD [".venv/bin/python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3100", "--workers", "4"]

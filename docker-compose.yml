@@ -1,0 +1,68 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: src/backend/Dockerfile
+    container_name: dyogents-backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongo
+
+  frontend:
+    build:
+      context: .
+      dockerfile: src/frontend/Dockerfile
+    container_name: dyogents-frontend
+    ports:
+      - "5173:5173"
+
+  mcp-server:
+    build:
+      context: .
+      dockerfile: src/mcp/Dockerfile
+    container_name: dyogents-mcp
+    ports:
+      - "8500:8500"
+    depends_on:
+      - mongo
+      - lite-llm
+
+
+  lite-llm:
+    image: ghcr.io/berriai/litellm:main
+    container_name: lite-llm
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./llm/litellm:/app
+    environment:
+      - LITELLM_SETTINGS_PATH=/app/llm/litellm/proxy_server_config.yaml
+      - PROXY_SERVER_CONFIG=/app/llm/litellm/proxy_server_config.yaml
+    platform: linux/amd64
+
+  mongo:
+    image: mongo:6.0
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    platform: linux/amd64
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.49
+    container_name: jaeger
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    platform: linux/amd64
+
+volumes:
+  ollama_data:
+  mongo_data:

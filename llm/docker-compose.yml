@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama
+    platform: linux/amd64
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./llm/ollama/models.txt:/models.txt
+    command: >
+      bash -c "
+      for model in $(cat /models.txt); do ollama pull $model; done && tail -f /dev/null
+      "
+
+  lite-llm:
+    image: ghcr.io/berriai/litellm:main
+    platform: linux/amd64
+    ports:
+      - "4000:4000"
+    environment:
+      - LITELLM_SETTINGS_PATH=/app/lite_llm_settings.yaml
+    volumes:
+      - ./llm/litellm:/app
+    depends_on:
+      - ollama
+
+volumes:
+  ollama_data:
