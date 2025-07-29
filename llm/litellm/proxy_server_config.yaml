@@ -1,0 +1,13 @@
+general_settings:
+  master_key: sk-local-dyogents
+
+model_list:
+  - model_name: mistral:instruct
+    litellm_params:
+      model: ollama/mistral:instruct
+      api_base: http://localhost:11434
+      api_key: sk-no-key-needed
+      api_type: openai
+      function_calling: true
+      json_output: true
+      stream: true

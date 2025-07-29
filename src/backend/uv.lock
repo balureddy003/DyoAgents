@@ -475,6 +475,7 @@ requires-dist = [
     { name = "opentelemetry-instrumentation-requests" },
     { name = "opentelemetry-sdk" },
     { name = "playwright", specifier = "==1.52.0" },
+    { name = "playwright", specifier = ">=1.44.0,<2.0.0" },
     { name = "pymongo" },
     { name = "python-dotenv", specifier = "==1.0.1" },
     { name = "python-multipart", specifier = "==0.0.20" },

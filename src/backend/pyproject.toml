@@ -44,5 +44,6 @@ dependencies = [
   "opentelemetry-instrumentation-openai",
   "opentelemetry-instrumentation-fastapi",
   "opentelemetry-instrumentation-requests",
-  "markitdown[all] >= 0.1.0a3,<0.2.dev0"
+  "markitdown[all] >= 0.1.0a3,<0.2.dev0",
+  "playwright>=1.44.0,<2.0.0"
 ]

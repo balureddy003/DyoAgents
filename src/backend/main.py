@@ -7,7 +7,9 @@ from opentelemetry.instrumentation.openai import OpenAIInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-def setup_logging(logs_dir="./logs", log_file="server.log"):
+def setup_logging(logs_dir=None, log_file="server.log"):
+    # Use environment variable or fallback to default Docker-safe location
+    logs_dir = logs_dir or os.getenv("LOGS_DIR", "/app/logs")
     os.makedirs(logs_dir, exist_ok=True)
     log_path = os.path.join(logs_dir, log_file)
 
