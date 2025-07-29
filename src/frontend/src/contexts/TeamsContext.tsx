@@ -91,7 +91,7 @@ console.log('BASE_URL:', BASE_URL);
 console.log('ALLWAYS_LOGGED_IN:', ALLWAYS_LOGGED_IN);
 
 export const TeamsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const BASE_URL = import.meta.env.VITE_BASE_URL || "https://autogen-demo-be2.whiteground-dbb1b0b8.eastus.azurecontainerapps.io";
+  const BASE_URL = import.meta.env.VITE_BASE_URL || "http://backend:800"; // Default to backend URL if not set
 
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState<boolean>(true);

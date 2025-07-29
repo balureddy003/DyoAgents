@@ -7,17 +7,33 @@ services:
       dockerfile: src/backend/Dockerfile
     container_name: dyogents-backend
     ports:
-      - "8000:8000"
+      - "3100:3100" 
     depends_on:
       - mongo
-
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/
+      - DEFAULT_PROVIDER=OllamaProvider
+      - DEFAULT_MODEL=mistral:instruct
+      - MCP_SERVER_URI=http://mcp-server:8500
+      - MCP_SERVER_API_KEY=123456789
+      - LLM_URL=http://localhost:4000/
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./logs:/app/logs
   frontend:
     build:
       context: .
       dockerfile: src/frontend/Dockerfile
+      args:
+       - VITE_BASE_URL=http://localhost:3100
     container_name: dyogents-frontend
     ports:
       - "5173:5173"
+    environment:
+      - VITE_BASE_URL=http://localhost:3100
+      - VITE_ACTIVATON_CODE=0000
+      - VITE_ALLWAYS_LOGGED_IN=true
 
   mcp-server:
     build:
@@ -44,7 +60,7 @@ services:
     platform: linux/amd64
 
   mongo:
-    image: mongo:6.0
+    image: mongo:4.4.25
     container_name: mongo
     ports:
       - "27017:27017"

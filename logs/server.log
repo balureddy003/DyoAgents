@@ -1,0 +1,7 @@
+2025-07-29 05:53:06,484 - startup - INFO - Logging setup complete. Log path: /app/logs/server.log
+2025-07-29 05:53:10,307 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+2025-07-29 05:53:14,533 - sentence_transformers.SentenceTransformer - INFO - 2 prompts are loaded, with the keys: ['query', 'text']
+2025-07-29 05:53:14,608 - chromadb.telemetry.product.posthog - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2025-07-29 05:53:14,723 - chromadb.telemetry.product.posthog - ERROR - Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+2025-07-29 05:53:14,724 - chromadb.telemetry.product.posthog - ERROR - Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+2025-07-29 05:53:14,725 - llama_index.core.indices.loading - INFO - Loading all indices.
